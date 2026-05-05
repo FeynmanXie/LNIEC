@@ -281,6 +281,39 @@ main {
   font-weight: 800;
 }
 
+.explanation-toggle {
+  min-height: 38px;
+  margin-top: 16px;
+  padding: 0 14px;
+  color: var(--accent-dark);
+  border: 1px solid rgba(23, 107, 112, 0.28);
+  background: var(--accent-soft);
+  font-size: 14px;
+}
+
+.explanation-toggle:hover {
+  color: #fff;
+  background: var(--accent);
+}
+
+.explanation-panel {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--accent);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #f7fbfa;
+  font-size: 15px;
+}
+
+.explanation-panel p {
+  margin: 0;
+}
+
+.explanation-panel p + p {
+  margin-top: 8px;
+}
+
 .submit-row {
   display: flex;
   align-items: center;

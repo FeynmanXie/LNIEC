@@ -137,7 +137,7 @@ Beaucoup != ne ... pas beaucoup ou ne ... pas du tout
 
 const sectionPattern = /^[1-6]\. (?:Écrivez|Répondez)/;
 const itemPattern = /^(\d+)\.\s+(.*)$/;
-const questions = parseQuestions(CORRECTION_TEXT);
+const questions = shuffleQuestionsBySection(parseQuestions(CORRECTION_TEXT));
 
 const quiz = document.querySelector("#quiz");
 const form = document.querySelector("#quizForm");
@@ -152,6 +152,7 @@ const checkBtn = document.querySelector("#checkBtn");
 const submitBtn = document.querySelector("#submitBtn");
 const answers = questions.map(() => "");
 const states = questions.map(() => ({ checked: false, correct: false }));
+const explanationOpen = questions.map(() => false);
 let currentIndex = 0;
 let countdown = null;
 let remainingSeconds = 0;
@@ -179,6 +180,11 @@ quiz.addEventListener("keydown", (event) => {
     event.preventDefault();
     checkCurrentQuestion();
   }
+});
+quiz.addEventListener("click", (event) => {
+  if (!event.target?.closest("#explanationToggle")) return;
+  explanationOpen[currentIndex] = !explanationOpen[currentIndex];
+  renderCurrentQuestion();
 });
 checkBtn.addEventListener("click", checkCurrentQuestion);
 backBtn.addEventListener("click", goBack);
@@ -226,6 +232,28 @@ function parseQuestions(text) {
   return parsed;
 }
 
+function shuffleQuestionsBySection(parsedQuestions) {
+  const groups = [];
+  parsedQuestions.forEach((question) => {
+    const lastGroup = groups.at(-1);
+    if (lastGroup?.section === question.section) {
+      lastGroup.questions.push(question);
+      return;
+    }
+    groups.push({ section: question.section, questions: [question] });
+  });
+  return groups.flatMap((group) => shuffleArray(group.questions));
+}
+
+function shuffleArray(items) {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function splitPromptAndAnswer(body) {
   let prompt = "";
   let answer = "";
@@ -255,6 +283,8 @@ function renderCurrentQuestion() {
   const question = questions[currentIndex];
   const state = states[currentIndex];
   const feedback = getFeedback(question, state);
+  const explanation = buildExplanation(question);
+  const isExplanationOpen = explanationOpen[currentIndex];
   quiz.innerHTML = `
     <div class="card-top">
       <div>
@@ -277,6 +307,23 @@ function renderCurrentQuestion() {
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
+    <button
+      id="explanationToggle"
+      class="explanation-toggle"
+      type="button"
+      aria-expanded="${isExplanationOpen}"
+      aria-controls="explanationPanel"
+    >
+      ${isExplanationOpen ? "收起讲解" : "看讲解"}
+    </button>
+    <div
+      id="explanationPanel"
+      class="explanation-panel"
+      ${isExplanationOpen ? "" : "hidden"}
+    >
+      <p>${explanation.rule}</p>
+      <p>${explanation.detail}</p>
+    </div>
   `;
   updateControls();
   window.setTimeout(() => {
@@ -293,6 +340,39 @@ function getFeedback(question, state) {
     return { kind: "", html: "输入答案后点击「提交本题」。提交后可以修改，成绩在交卷后统一显示。" };
   }
   return { kind: "", html: "本题已保存。交卷前可以修改，修改后再次点击「提交本题」更新答案。" };
+}
+
+function buildExplanation(question) {
+  const answer = fullAnswer(question);
+  const normalized = normalizeAnswer(answer);
+  let rule = "否定句通常把 ne 放在变位动词前，pas 或其他否定词放在变位动词后；元音前的 ne 变成 n'.";
+
+  if (normalized.includes(" plus")) {
+    rule = "encore / toujours 表示“还、仍然”时，否定通常用 ne ... plus，意思是“不再”。";
+  } else if (normalized.includes(" jamais")) {
+    rule = "deja、souvent、parfois、toujours 等需要表达“从不/从未”时，常用 ne ... jamais。";
+  } else if (normalized.includes(" pas encore")) {
+    rule = "deja 如果要回答“还没有”，用 ne ... pas encore。";
+  } else if (normalized.includes(" rien")) {
+    rule = "quelque chose 的否定是 ne ... rien；如果 rien 作主语，就放在句首：Rien ne ...";
+  } else if (normalized.includes(" personne")) {
+    rule = "quelqu'un 的否定是 ne ... personne；如果 personne 作主语，就放在句首：Personne ne ...";
+  } else if (normalized.includes(" aucun") || normalized.includes(" aucune")) {
+    rule = "quelques / plusieurs / tous 的否定常用 ne ... aucun / aucune，名词要配合阴阳性。";
+  } else if (normalized.includes(" nulle part")) {
+    rule = "quelque part 的否定是 ne ... nulle part，表示“哪里也不”。";
+  } else if (normalized.includes(" ni ")) {
+    rule = "两个并列内容同时否定时，用 ne ... ni ... ni ...，意思是“既不……也不……”。";
+  } else if (normalized.includes(" qu'") || normalized.includes(" que ")) {
+    rule = "seulement 的意思可以用 ne ... que 表达，意思是“只、仅仅”。";
+  } else if (normalized.includes(" pas beaucoup") || normalized.includes(" pas du tout")) {
+    rule = "beaucoup 的否定可以用 ne ... pas beaucoup，也可以加强为 ne ... pas du tout。";
+  } else if (normalized.includes(" pas de ") || normalized.includes(" pas d'")) {
+    rule = "不定冠词 un / une / des 和部分冠词 du / de la / de l' 在否定后通常变成 de / d'.";
+  }
+
+  const detail = `这题先找到原句里的动词或助动词，再把否定结构套在它两边；如果答案以 ${question.prefix || "Non/Oui"} 开头，后面的句子也要根据主语和时态调整。`;
+  return { rule: escapeHtml(rule), detail: escapeHtml(detail) };
 }
 
 function updateFeedbackPanel() {
@@ -435,6 +515,7 @@ function resetQuiz() {
     state.checked = false;
     state.correct = false;
   });
+  explanationOpen.fill(false);
   currentIndex = 0;
   resultSummary.textContent = "";
   duration.disabled = !examMode.checked;
