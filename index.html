@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>La negation - examen blanc</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Francais intermediaire</p>
+        <h1>La negation</h1>
+      </div>
+      <div class="exam-controls" aria-label="Controle de l'examen">
+        <label class="toggle">
+          <input id="examMode" type="checkbox">
+          <span>限时考试模式</span>
+        </label>
+        <label class="time-select">
+          <span>时长</span>
+          <select id="duration">
+            <option value="15">15 分钟</option>
+            <option value="30" selected>30 分钟</option>
+            <option value="45">45 分钟</option>
+            <option value="60">60 分钟</option>
+          </select>
+        </label>
+        <button id="startExam" class="secondary" type="button">开始计时</button>
+        <button id="resetAll" class="ghost" type="button">重做</button>
+      </div>
+    </header>
+
+    <section class="status-panel" aria-live="polite">
+      <div class="stat">
+        <span class="label">倒计时</span>
+        <strong id="timer">--:--</strong>
+      </div>
+    </section>
+
+    <main>
+      <form id="quizForm" autocomplete="off">
+        <section id="quiz" class="quiz-card" aria-live="polite"></section>
+        <div class="submit-row" aria-label="答题操作">
+          <button id="backBtn" class="ghost" type="button">上一题</button>
+          <div class="primary-actions">
+            <button id="checkBtn" type="button">提交本题</button>
+            <button id="submitBtn" class="secondary" type="submit">交卷</button>
+          </div>
+        </div>
+        <p id="resultSummary" class="summary" aria-live="polite"></p>
+      </form>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
