@@ -273,7 +273,7 @@ function renderCurrentQuestion() {
         aria-label="Question ${question.id}"
         type="text"
         value="${escapeAttribute(answers[currentIndex])}"
-        ${state.checked || submitted ? "disabled" : ""}
+        ${submitted ? "disabled" : ""}
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
@@ -290,9 +290,9 @@ function getFeedback(question, state) {
     return { kind: "good", html: "已交卷。这里只保留你的作答，不显示正确答案。" };
   }
   if (!state.checked) {
-    return { kind: "", html: "输入答案后点击「提交本题」。提交后不能修改，成绩在交卷后统一显示。" };
+    return { kind: "", html: "输入答案后点击「提交本题」。提交后可以修改，成绩在交卷后统一显示。" };
   }
-  return { kind: "", html: "本题已提交。你可以返回查看，但不能修改。" };
+  return { kind: "", html: "本题已保存。交卷前可以修改，修改后再次点击「提交本题」更新答案。" };
 }
 
 function updateFeedbackPanel() {
@@ -308,14 +308,6 @@ function updateFeedbackPanel() {
 
 function checkCurrentQuestion() {
   if (submitted) return;
-  if (states[currentIndex].checked) {
-    if (currentIndex < questions.length - 1) {
-      currentIndex += 1;
-      renderCurrentQuestion();
-      updateProgress();
-    }
-    return;
-  }
   saveCurrentAnswer();
   const question = questions[currentIndex];
   const correct = isCorrect(answers[currentIndex], question.answer);
@@ -398,12 +390,11 @@ function updateProgress() {
 }
 
 function updateControls() {
-  const currentChecked = states[currentIndex].checked;
   backBtn.disabled = currentIndex === 0;
-  checkBtn.disabled = submitted || (currentChecked && currentIndex === questions.length - 1);
+  checkBtn.disabled = submitted;
   submitBtn.hidden = currentIndex !== questions.length - 1;
   submitBtn.disabled = submitted || currentIndex !== questions.length - 1;
-  checkBtn.textContent = currentChecked && currentIndex < questions.length - 1 ? "下一题" : "提交本题";
+  checkBtn.textContent = "提交本题";
 }
 
 function startTimer() {
