@@ -164,8 +164,14 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();
   gradeQuiz();
 });
-quiz.addEventListener("input", () => {
+quiz.addEventListener("input", (event) => {
+  if (event.target?.id !== "answerInput") return;
   saveCurrentAnswer();
+  if (!submitted && states[currentIndex].checked) {
+    states[currentIndex].checked = false;
+    states[currentIndex].correct = false;
+    updateFeedbackPanel();
+  }
   updateProgress();
 });
 quiz.addEventListener("keydown", (event) => {
@@ -267,7 +273,7 @@ function renderCurrentQuestion() {
         aria-label="Question ${question.id}"
         type="text"
         value="${escapeAttribute(answers[currentIndex])}"
-        ${state.checked || submitted ? "disabled" : ""}
+        ${submitted ? "disabled" : ""}
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
@@ -284,9 +290,20 @@ function getFeedback(question, state) {
     return { kind: "good", html: "已交卷。这里只保留你的作答，不显示正确答案。" };
   }
   if (!state.checked) {
-    return { kind: "", html: "输入答案后提交本题。提交后不能修改，成绩最后统一显示。" };
+    return { kind: "", html: "输入答案后点击「提交本题」。可用「上一题」返回检查并修改已答题，成绩在交卷后统一显示。" };
   }
-  return { kind: "", html: "本题已提交。你可以返回查看，但不能修改。" };
+  return { kind: "", html: "本题已答。可直接修改答案，修改后需再次点击「提交本题」。" };
+}
+
+function updateFeedbackPanel() {
+  const question = questions[currentIndex];
+  const state = states[currentIndex];
+  const feedback = getFeedback(question, state);
+  const feedbackEl = document.querySelector("#feedback");
+  if (feedbackEl) {
+    feedbackEl.className = `feedback ${feedback.kind}`;
+    feedbackEl.innerHTML = feedback.html;
+  }
 }
 
 function checkCurrentQuestion() {

@@ -4,7 +4,7 @@ A static, browser-only practice page for **intermediate French**, focused on neg
 
 ## Features
 
-- **One question at a time**: Submit the current item to move on; submitted answers cannot be edited, but you can go **Back** to review.
+- **One question at a time**: Submit the current item to move on; use **Back** to review or change earlier answers (editing a submitted answer clears its “submitted” state until you submit again).
 - **Submit exam**: On the last question, **Submit exam** shows your score and percentage; the countdown stops, and the UI keeps only your answers (it does not display the official answer key as text).
 - **Timed mode (optional)**: Enable timed exam mode, pick a duration (15 / 30 / 45 / 60 minutes), then **Start timer**; when time runs out, the quiz submits automatically.
 - **Reset**: Clears answers and the timer and restarts from question 1.
