@@ -267,7 +267,7 @@ function renderCurrentQuestion() {
         aria-label="Question ${question.id}"
         type="text"
         value="${escapeAttribute(answers[currentIndex])}"
-        ${submitted ? "disabled" : ""}
+        ${state.checked || submitted ? "disabled" : ""}
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
@@ -281,34 +281,34 @@ function renderCurrentQuestion() {
 
 function getFeedback(question, state) {
   if (submitted) {
-    return state.correct
-      ? { kind: "good", html: `正确。<span class="answer-reveal">${escapeHtml(fullAnswer(question))}</span>` }
-      : { kind: "bad", html: `正确答案：<span class="answer-reveal">${escapeHtml(fullAnswer(question))}</span>` };
+    return { kind: "good", html: "已交卷。这里只保留你的作答，不显示正确答案。" };
   }
   if (!state.checked) {
-    return { kind: "", html: "输入答案后提交本题。答对会自动进入下一题，上一题可随时返回。" };
+    return { kind: "", html: "输入答案后提交本题。提交后不能修改，成绩最后统一显示。" };
   }
-  if (state.correct) {
-    return { kind: "good", html: "正确，正在进入下一题。" };
-  }
-  return { kind: "bad", html: `还不对。正确答案：<span class="answer-reveal">${escapeHtml(fullAnswer(question))}</span>` };
+  return { kind: "", html: "本题已提交。你可以返回查看，但不能修改。" };
 }
 
 function checkCurrentQuestion() {
   if (submitted) return;
+  if (states[currentIndex].checked) {
+    if (currentIndex < questions.length - 1) {
+      currentIndex += 1;
+      renderCurrentQuestion();
+      updateProgress();
+    }
+    return;
+  }
   saveCurrentAnswer();
   const question = questions[currentIndex];
   const correct = isCorrect(answers[currentIndex], question.answer);
   states[currentIndex] = { checked: true, correct };
   updateProgress();
 
-  if (correct && currentIndex < questions.length - 1) {
+  if (currentIndex < questions.length - 1) {
+    currentIndex += 1;
     renderCurrentQuestion();
-    window.setTimeout(() => {
-      currentIndex += 1;
-      renderCurrentQuestion();
-      updateProgress();
-    }, 360);
+    updateProgress();
     return;
   }
   renderCurrentQuestion();
@@ -361,9 +361,12 @@ function normalizeAnswer(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[’']/g, "'")
+    .replace(/[’‘`´]/g, "'")
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .replace(/^(non|oui),?\s+/i, "")
-    .replace(/[.,!?;:()]/g, " ")
+    .replace(/[^a-z0-9']/g, " ")
+    .replace(/\s*'\s*/g, "'")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -378,11 +381,12 @@ function updateProgress() {
 }
 
 function updateControls() {
+  const currentChecked = states[currentIndex].checked;
   backBtn.disabled = currentIndex === 0;
-  checkBtn.disabled = submitted;
+  checkBtn.disabled = submitted || (currentChecked && currentIndex === questions.length - 1);
   submitBtn.hidden = currentIndex !== questions.length - 1;
   submitBtn.disabled = submitted || currentIndex !== questions.length - 1;
-  checkBtn.textContent = currentIndex === questions.length - 1 ? "提交本题" : "提交本题";
+  checkBtn.textContent = currentChecked && currentIndex < questions.length - 1 ? "下一题" : "提交本题";
 }
 
 function startTimer() {
