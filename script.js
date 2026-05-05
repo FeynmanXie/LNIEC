@@ -273,7 +273,7 @@ function renderCurrentQuestion() {
         aria-label="Question ${question.id}"
         type="text"
         value="${escapeAttribute(answers[currentIndex])}"
-        ${submitted ? "disabled" : ""}
+        ${state.checked || submitted ? "disabled" : ""}
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
@@ -290,9 +290,9 @@ function getFeedback(question, state) {
     return { kind: "good", html: "已交卷。这里只保留你的作答，不显示正确答案。" };
   }
   if (!state.checked) {
-    return { kind: "", html: "输入答案后点击「提交本题」。可用「上一题」返回检查并修改已答题，成绩在交卷后统一显示。" };
+    return { kind: "", html: "输入答案后点击「提交本题」。提交后不能修改，成绩在交卷后统一显示。" };
   }
-  return { kind: "", html: "本题已答。可直接修改答案，修改后需再次点击「提交本题」。" };
+  return { kind: "", html: "本题已提交。你可以返回查看，但不能修改。" };
 }
 
 function updateFeedbackPanel() {
