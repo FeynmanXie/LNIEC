@@ -167,12 +167,8 @@ form.addEventListener("submit", (event) => {
 });
 quiz.addEventListener("input", (event) => {
   if (event.target?.id !== "answerInput") return;
+  if (states[currentIndex].checked) return;
   saveCurrentAnswer();
-  if (!submitted && states[currentIndex].checked) {
-    states[currentIndex].checked = false;
-    states[currentIndex].correct = false;
-    updateFeedbackPanel();
-  }
   updateProgress();
 });
 quiz.addEventListener("keydown", (event) => {
@@ -285,6 +281,7 @@ function renderCurrentQuestion() {
   const feedback = getFeedback(question, state);
   const explanation = buildExplanation(question);
   const isExplanationOpen = explanationOpen[currentIndex];
+  const isLocked = submitted || state.checked;
   quiz.innerHTML = `
     <div class="card-top">
       <div>
@@ -303,7 +300,7 @@ function renderCurrentQuestion() {
         aria-label="Question ${question.id}"
         type="text"
         value="${escapeAttribute(answers[currentIndex])}"
-        ${submitted ? "disabled" : ""}
+        ${isLocked ? "disabled" : ""}
       >
     </div>
     <div id="feedback" class="feedback ${feedback.kind}" aria-live="polite">${feedback.html}</div>
@@ -328,18 +325,21 @@ function renderCurrentQuestion() {
   updateControls();
   window.setTimeout(() => {
     const input = document.querySelector("#answerInput");
-    if (input && !submitted) input.focus();
+    if (input && !isLocked) input.focus();
   }, 0);
 }
 
 function getFeedback(question, state) {
-  if (submitted) {
-    return { kind: "good", html: "已交卷。这里只保留你的作答，不显示正确答案。" };
-  }
   if (!state.checked) {
-    return { kind: "", html: "输入答案后点击「提交本题」。提交后可以修改，成绩在交卷后统一显示。" };
+    return { kind: "", html: "输入答案后点击「提交本题」。提交后会立即判定并锁定本题。" };
   }
-  return { kind: "", html: "本题已保存。交卷前可以修改，修改后再次点击「提交本题」更新答案。" };
+  if (state.correct) {
+    return { kind: "good", html: "对" };
+  }
+  return {
+    kind: "bad",
+    html: `错<span class="answer-reveal">正确答案：${escapeHtml(fullAnswer(question))}</span>`
+  };
 }
 
 function buildExplanation(question) {
@@ -388,18 +388,19 @@ function updateFeedbackPanel() {
 
 function checkCurrentQuestion() {
   if (submitted) return;
+  if (states[currentIndex].checked) {
+    if (currentIndex < questions.length - 1) {
+      currentIndex += 1;
+      renderCurrentQuestion();
+      updateProgress();
+    }
+    return;
+  }
   saveCurrentAnswer();
   const question = questions[currentIndex];
   const correct = isCorrect(answers[currentIndex], question.answer);
   states[currentIndex] = { checked: true, correct };
   updateProgress();
-
-  if (currentIndex < questions.length - 1) {
-    currentIndex += 1;
-    renderCurrentQuestion();
-    updateProgress();
-    return;
-  }
   renderCurrentQuestion();
 }
 
@@ -470,11 +471,13 @@ function updateProgress() {
 }
 
 function updateControls() {
+  const state = states[currentIndex];
   backBtn.disabled = currentIndex === 0;
+  checkBtn.hidden = currentIndex === questions.length - 1 && state.checked;
   checkBtn.disabled = submitted;
-  submitBtn.hidden = currentIndex !== questions.length - 1;
-  submitBtn.disabled = submitted || currentIndex !== questions.length - 1;
-  checkBtn.textContent = "提交本题";
+  submitBtn.hidden = currentIndex !== questions.length - 1 || !state.checked;
+  submitBtn.disabled = submitted || currentIndex !== questions.length - 1 || !state.checked;
+  checkBtn.textContent = state.checked ? "下一题" : "提交本题";
 }
 
 function startTimer() {
